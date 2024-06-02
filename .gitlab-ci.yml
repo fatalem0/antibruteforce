@@ -1,0 +1,35 @@
+image: golang:latest
+
+stages:
+  - linters
+  - store_usecase_test
+
+variables:
+  POSTGRES_PASSWORD: 123456
+  POSTGRES_USER: postgres
+  POSTGRES_DB: force
+  POSTGRES_HOST: db
+  POSTGRES_PORT: 5432
+  POSTGRES_HOST_AUTH_METHOD: trust
+
+linters:
+  stage: linters
+  image: golangci/golangci-lint
+  script:
+    - cd ./antibruteforce
+    - golangci-lint run -D typecheck
+
+usecase_test:
+  stage: store_usecase_test
+  script: cd ./antibruteforce && make unit_test
+
+store_test:
+  stage: store_usecase_test
+  services:
+    - name: postgres:11.6
+      alias: db
+  script:
+    - apt-get update
+    - apt-get -y install postgresql-client
+    - PGPASSWORD="123456" psql -h db -U postgres -d force < ./antibruteforce/sql/setup.sql
+    - cd ./antibruteforce && make store_test

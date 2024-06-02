@@ -1,0 +1,43 @@
+version: '3'
+services:
+
+  unit:
+    image: abf:1.0
+    build:
+      context: ./antibruteforce
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_USER: postgres
+      POSTGRES_DB: force
+      POSTGRES_HOST: db
+      LOGIN_LIMIT: 10
+      PASSWORD_LIMIT: 100
+      IP_LIMIT: 1000
+      DURATION: 10
+      BUILD: dev
+      GRPC_PORT: 50051
+      GRPC_HOST: 0.0.0.0
+      GRPC_TOKEN: secret
+    command:  ./wait-for-it.sh db:5432 -- go run main.go grpc
+    depends_on:
+      - db
+    restart: on-failure
+    volumes:
+      - ./antibruteforce:/code
+    networks:
+      - net
+
+  db:
+    image: postgres:11.6
+    environment:
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_USER: postgres
+      POSTGRES_DB: force
+    networks:
+      - net
+    volumes:
+      - ./antibruteforce/sql/setup.sql:/docker-entrypoint-initdb.d/setup.sql
+networks:
+  net:
+    driver: bridge
